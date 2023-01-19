@@ -30,7 +30,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: setup aho-corasick for cgo
-        if: ${{ matrix.mode == 'cgo' }}
         run: |
           rustup toolchain install stable
           rustup default stable
@@ -38,8 +37,12 @@ jobs:
         working-directory: buildtools/aho-corasick
 
       - run: go run mage.go benchall
+        env:
+          LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
 
       - run: go run mage.go wafbenchall
+        env:
+          LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
 
       - uses: actions/upload-artifact@v3
         with:
