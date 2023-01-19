@@ -102,10 +102,10 @@ func TestAhoCorasick_ReplaceAllFunc(t *testing.T) {
 	}
 }
 
-var acsNFA []Replacer
+var acsNFA []ReplacerBenchmark
 
 func init() {
-	acsNFA = make([]Replacer, len(testCasesReplace))
+	acsNFA = make([]ReplacerBenchmark, len(testCasesReplace))
 	for i, t2 := range testCasesReplace {
 		builder := NewAhoCorasickBuilderBenchmark(Opts{
 			AsciiCaseInsensitive: true,
@@ -113,7 +113,7 @@ func init() {
 			MatchKind:            LeftMostLongestMatch,
 		})
 		ac := builder.Build(t2.patterns)
-		acsNFA[i] = NewReplacer(ac)
+		acsNFA[i] = NewReplacerBenchmark(ac)
 	}
 }
 
