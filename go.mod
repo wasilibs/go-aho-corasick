@@ -1,4 +1,4 @@
-module go-aho-corasick
+module github.com/wasilibs/go-aho-corasick
 
 go 1.18
 
