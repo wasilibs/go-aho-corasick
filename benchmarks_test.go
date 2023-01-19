@@ -2,10 +2,10 @@ package aho_corasick
 
 import "testing"
 
-var benchmarkReplacerDFA []Replacer
+var benchmarkReplacerDFA []ReplacerBenchmark
 
 func init() {
-	benchmarkReplacerDFA = make([]Replacer, len(testCasesReplace))
+	benchmarkReplacerDFA = make([]ReplacerBenchmark, len(testCasesReplace))
 	for i, t2 := range testCasesReplace {
 		builder := NewAhoCorasickBuilderBenchmark(Opts{
 			AsciiCaseInsensitive: true,
@@ -14,7 +14,7 @@ func init() {
 			DFA:                  true,
 		})
 		ac := builder.Build(t2.patterns)
-		benchmarkReplacerDFA[i] = NewReplacer(ac)
+		benchmarkReplacerDFA[i] = NewReplacerBenchmark(ac)
 	}
 }
 
