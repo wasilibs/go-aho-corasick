@@ -32,6 +32,11 @@ pub extern "C" fn new_matcher(patterns_ptr: *const c_char, patterns_len: usize, 
 }
 
 #[no_mangle]
+pub extern "C" fn delete_matcher(_matcher: Box<AhoCorasick>) {
+    // Box takes ownership and will release
+}
+
+#[no_mangle]
 pub extern "C" fn find_iter(ac: &AhoCorasick, value_ptr: usize, value_len: usize) -> Box<FindIter<usize>> {
     let value = ptr_to_string(value_ptr, value_len);
     return Box::new(ac.find_iter(value));

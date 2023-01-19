@@ -30,6 +30,7 @@ var (
 
 type ahoCorasickABI struct {
 	new_matcher             api.Function
+	delete_matcher          api.Function
 	find_iter               api.Function
 	find_iter_next          api.Function
 	find_iter_delete        api.Function
@@ -75,6 +76,7 @@ func newABI() *ahoCorasickABI {
 
 	return &ahoCorasickABI{
 		new_matcher:             mod.ExportedFunction("new_matcher"),
+		delete_matcher:          mod.ExportedFunction("delete_matcher"),
 		find_iter:               mod.ExportedFunction("find_iter"),
 		find_iter_next:          mod.ExportedFunction("find_iter_next"),
 		find_iter_delete:        mod.ExportedFunction("find_iter_delete"),
@@ -118,6 +120,13 @@ func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool
 	}
 
 	return uintptr(res[0])
+}
+
+func (abi *ahoCorasickABI) deleteMatcher(ptr uintptr) {
+	_, err := abi.delete_matcher.Call(context.Background(), uint64(ptr))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (abi *ahoCorasickABI) findIter(acPtr uintptr, value cString) uintptr {
