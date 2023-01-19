@@ -5,11 +5,11 @@ package aho_corasick
 /*
 void* new_matcher(void* patterns, int patterns_len, int ascii_case_insensitive, int dfa, int match_kind);
 void* find_iter(void* ac, void* value, int value_len);
-int find_iter_next(void* iter, int* patternOut, int* startOut, int* endOut);
+int find_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
 void find_iter_delete(void* iter);
 
 void* overlapping_iter(void* ac, void* value, int value_len);
-int overlapping_iter_next(void* iter, int* patternOut, int* startOut, int* endOut);
+int overlapping_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
 void overlapping_iter_delete(void* iter);
 */
 import "C"
@@ -54,7 +54,7 @@ func (abi *ahoCorasickABI) findIter(acPtr uintptr, value cString) uintptr {
 }
 
 func (abi *ahoCorasickABI) findIterNext(iterPtr uintptr) (pattern int, start int, end int, ok bool) {
-	var patternC, startC, endC C.int
+	var patternC, startC, endC C.size_t
 	okC := C.find_iter_next(unsafe.Pointer(iterPtr), &patternC, &startC, &endC)
 	if okC > 0 {
 		ok = true
@@ -72,7 +72,7 @@ func (abi *ahoCorasickABI) overlappingIter(acPtr uintptr, value cString) uintptr
 }
 
 func (abi *ahoCorasickABI) overlappingIterNext(iterPtr uintptr) (pattern int, start int, end int, ok bool) {
-	var patternC, startC, endC C.int
+	var patternC, startC, endC C.size_t
 	okC := C.overlapping_iter_next(unsafe.Pointer(iterPtr), &patternC, &startC, &endC)
 	if okC > 0 {
 		ok = true
