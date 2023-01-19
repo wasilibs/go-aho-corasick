@@ -30,11 +30,13 @@ jobs:
           cache: true
 
       - uses: actions-rs/toolchain@v1
+        if: ${{ matrix.mode == 'cgo' }}
         with:
           toolchain: stable
 
       - name: setup aho-corasick for cgo
-        run: cargo build --release && ls buildtools/aho-corasick/target/release
+        if: ${{ matrix.mode == 'cgo' }}
+        run: cargo build --release && ls buildtools/aho-corasick/target
         working-directory: buildtools/aho-corasick
 
       - name: setup tinygo
