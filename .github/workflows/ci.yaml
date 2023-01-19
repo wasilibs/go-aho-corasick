@@ -36,7 +36,7 @@ jobs:
 
       - name: setup aho-corasick for cgo
         if: ${{ matrix.mode == 'cgo' }}
-        run: cargo build --release && ls buildtools/aho-corasick/target
+        run: cargo build --release && ls target/release
         working-directory: buildtools/aho-corasick
 
       - name: setup tinygo
