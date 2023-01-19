@@ -7,6 +7,7 @@ package aho_corasick
 #include <stddef.h>
 
 void* new_matcher(void* patterns, int patterns_len, int ascii_case_insensitive, int dfa, int match_kind);
+void delete_matcher(void* matcher);
 void* find_iter(void* ac, void* value, int value_len);
 int find_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
 void find_iter_delete(void* iter);
@@ -49,6 +50,10 @@ func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool
 	ptr := C.new_matcher(unsafe.Pointer(patternsSh.Data), C.int(patternsSh.Len), C.int(aci), C.int(d), C.int(matchKind))
 	runtime.KeepAlive(patterns)
 	return uintptr(ptr)
+}
+
+func (abi *ahoCorasickABI) deleteMatcher(ptr uintptr) {
+	C.delete_matcher(unsafe.Pointer(ptr))
 }
 
 func (abi *ahoCorasickABI) findIter(acPtr uintptr, value cString) uintptr {

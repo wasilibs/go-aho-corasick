@@ -1,6 +1,7 @@
 package aho_corasick
 
 import (
+	"runtime"
 	"strings"
 	"sync"
 	"unicode"
@@ -29,7 +30,9 @@ func (ac AhoCorasick) Iter(haystack string) Iter {
 
 	iterPtr := ac.abi.findIter(ac.ptr, cs)
 
-	return &findIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
+	iter := &findIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
+	runtime.SetFinalizer(iter, (*findIter).release)
+	return iter
 }
 
 // IterOverlapping gives an iterator over the built patterns with overlapping matches
@@ -43,7 +46,9 @@ func (ac AhoCorasick) IterOverlapping(haystack string) Iter {
 
 	iterPtr := ac.abi.overlappingIter(ac.ptr, cs)
 
-	return &overlappingIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
+	iter := &overlappingIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
+	runtime.SetFinalizer(iter, (*overlappingIter).release)
+	return iter
 }
 
 var pool = sync.Pool{
@@ -186,6 +191,10 @@ func (a *AhoCorasickBuilder) Build(patterns []string) AhoCorasick {
 	ptr := abi.newMatcher(buf, a.asciiCaseInsensitive, a.dfa, int(a.matchKind))
 	abi.endOperation()
 
+	runtime.SetFinalizer(abi, func(abi *ahoCorasickABI) {
+		abi.deleteMatcher(ptr)
+	})
+
 	return AhoCorasick{
 		ptr:                 ptr,
 		abi:                 abi,
@@ -219,11 +228,7 @@ func (f *findIter) Next() *Match {
 	f.abi.endOperation()
 
 	if !ok {
-		f.abi.startOperation(0)
-		f.abi.findIterDelete(f.ptr)
-		f.abi.freeOwnedCStringPtr(f.haystackPtr)
-		f.abi.endOperation()
-		f.ptr = 0
+		f.release()
 		return nil
 	}
 
@@ -243,6 +248,16 @@ func (f *findIter) Next() *Match {
 	}
 
 	return result
+}
+
+func (f *findIter) release() {
+	f.abi.startOperation(0)
+	if f.ptr != 0 {
+		f.abi.findIterDelete(f.ptr)
+		f.abi.freeOwnedCStringPtr(f.haystackPtr)
+		f.ptr = 0
+	}
+	f.abi.endOperation()
 }
 
 // While currently it could be possible to reuse findIter, the implementation
@@ -266,11 +281,7 @@ func (o *overlappingIter) Next() *Match {
 	o.abi.endOperation()
 
 	if !ok {
-		o.abi.startOperation(0)
-		o.abi.overlappingIterDelete(o.ptr)
-		o.abi.freeOwnedCStringPtr(o.haystackPtr)
-		o.abi.endOperation()
-		o.ptr = 0
+		o.release()
 		return nil
 	}
 
@@ -290,6 +301,16 @@ func (o *overlappingIter) Next() *Match {
 	}
 
 	return result
+}
+
+func (o *overlappingIter) release() {
+	o.abi.startOperation(0)
+	if o.ptr != 0 {
+		o.abi.overlappingIterDelete(o.ptr)
+		o.abi.freeOwnedCStringPtr(o.haystackPtr)
+		o.ptr = 0
+	}
+	o.abi.endOperation()
 }
 
 type matchKind int
