@@ -30,6 +30,8 @@ jobs:
           cache: true
 
       - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
       - name: setup aho-corasick for cgo
         run: cargo build --release
