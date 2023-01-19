@@ -143,9 +143,18 @@ func (abi *ahoCorasickABI) findIterNext(iter uintptr) (int, int, int, bool) {
 		return 0, 0, 0, false
 	}
 
-	pattern, _ := abi.wasmMemory.ReadUint32Le(uint32(patternPtr))
-	start, _ := abi.wasmMemory.ReadUint32Le(uint32(startPtr))
-	end, _ := abi.wasmMemory.ReadUint32Le(uint32(endPtr))
+	pattern, ok := abi.wasmMemory.ReadUint32Le(uint32(patternPtr))
+	if !ok {
+		panic(errFailedRead)
+	}
+	start, ok := abi.wasmMemory.ReadUint32Le(uint32(startPtr))
+	if !ok {
+		panic(errFailedRead)
+	}
+	end, ok := abi.wasmMemory.ReadUint32Le(uint32(endPtr))
+	if !ok {
+		panic(errFailedRead)
+	}
 
 	return int(pattern), int(start), int(end), true
 }
@@ -233,37 +242,15 @@ func (m *sharedMemory) allocate(size uint32) uintptr {
 	return uintptr(ptr)
 }
 
-func (m *sharedMemory) read(abi *ahoCorasickABI, ptr uintptr, size int) []byte {
-	buf, ok := abi.wasmMemory.Read(uint32(ptr), uint32(size))
-	if !ok {
-		panic(errFailedRead)
-	}
-	return buf
-}
-
 func (m *sharedMemory) write(abi *ahoCorasickABI, b []byte) uintptr {
 	ptr := m.allocate(uint32(len(b)))
 	abi.wasmMemory.Write(uint32(ptr), b)
 	return ptr
 }
 
-func (m *sharedMemory) writeString(abi *ahoCorasickABI, s string) uintptr {
-	ptr := m.allocate(uint32(len(s)))
-	abi.wasmMemory.WriteString(uint32(ptr), s)
-	return ptr
-}
-
 type cString struct {
 	ptr    uintptr
 	length int
-}
-
-func (abi *ahoCorasickABI) newCString(s string) cString {
-	ptr := abi.memory.writeString(abi, s)
-	return cString{
-		ptr:    ptr,
-		length: len(s),
-	}
 }
 
 func (abi *ahoCorasickABI) newOwnedCString(s string) cString {

@@ -19,10 +19,22 @@ jobs:
           go-version: '^1.18.8'
           cache: true
 
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: setup aho-corasick for cgo
-        run: cargo build --release
+        if: ${{ matrix.mode == 'cgo' }}
+        run: |
+          rustup toolchain install stable
+          rustup default stable
+          cargo build --release
         working-directory: buildtools/aho-corasick
 
       - run: go run mage.go benchall

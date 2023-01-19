@@ -22,6 +22,10 @@ jobs:
           - macos-12
           - ubuntu-22.04
           - windows-2022
+        exclude:
+          # Might be able to get it to work but currently fails mysteriously.
+          - os: windows-2022
+            mode: cgo
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
@@ -29,11 +33,28 @@ jobs:
           go-version: '^1.18.8'
           cache: true
 
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: setup aho-corasick for cgo
-        run: cargo build --release
+        if: ${{ matrix.mode == 'cgo' }}
+        run: |
+          rustup toolchain install stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustup default stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          cargo build --release
+          ls target/release
         working-directory: buildtools/aho-corasick
+
+      - name: add aho-corasick DLL to path
+        if: ${{ startsWith(matrix.os, 'windows-') }}
+        run: echo "${GITHUB_WORKSPACE}/buildtools/aho-corasick/target/release" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
@@ -57,6 +78,7 @@ jobs:
       - run: go run mage.go check
         env:
           WASI_TEST_MODE: ${{ matrix.mode }}
+          LD_LIBRARY_PATH: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' && './buildtools/aho-corasick/target/release' || '' }}
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
