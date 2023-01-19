@@ -1,12 +1,21 @@
 package aho_corasick
 
-import "unicode"
+import (
+	"strings"
+	"sync"
+	"unicode"
+)
 
 type AhoCorasick struct {
 	ptr uintptr
 	abi *ahoCorasickABI
 
 	matchOnlyWholeWords bool
+	patternCount        int
+}
+
+func (ac AhoCorasick) PatternCount() int {
+	return ac.patternCount
 }
 
 // Iter gives an iterator over the built patterns
@@ -35,6 +44,84 @@ func (ac AhoCorasick) IterOverlapping(haystack string) Iter {
 	iterPtr := ac.abi.overlappingIter(ac.ptr, cs)
 
 	return &overlappingIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
+}
+
+var pool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
+}
+
+type Replacer struct {
+	finder Finder
+}
+
+func NewReplacer(finder Finder) Replacer {
+	return Replacer{finder: finder}
+}
+
+// ReplaceAllFunc replaces the matches found in the haystack according to the user provided function
+// it gives fine grained control over what is replaced.
+// A user can chose to stop the replacing process early by returning false in the lambda
+// In that case, everything from that point will be kept as the original haystack
+func (r Replacer) ReplaceAllFunc(haystack string, f func(match Match) (string, bool)) string {
+	matches := r.finder.FindAll(haystack)
+
+	if len(matches) == 0 {
+		return haystack
+	}
+
+	replaceWith := make([]string, 0)
+
+	for _, match := range matches {
+		rw, ok := f(match)
+		if !ok {
+			break
+		}
+		replaceWith = append(replaceWith, rw)
+	}
+
+	str := pool.Get().(*strings.Builder)
+
+	defer func() {
+		str.Reset()
+		pool.Put(str)
+	}()
+
+	start := 0
+
+	for i, match := range matches {
+		if i >= len(replaceWith) {
+			str.WriteString(haystack[start:])
+			return str.String()
+		}
+		str.WriteString(haystack[start:match.Start()])
+		str.WriteString(replaceWith[i])
+		start = match.End()
+	}
+
+	if start-1 < len(haystack) {
+		str.WriteString(haystack[start:])
+	}
+
+	return str.String()
+}
+
+// ReplaceAll replaces the matches found in the haystack according to the user provided slice `replaceWith`
+// It panics, if `replaceWith` has length different from the patterns that it was built with
+func (r Replacer) ReplaceAll(haystack string, replaceWith []string) string {
+	if len(replaceWith) != r.finder.PatternCount() {
+		panic("replaceWith needs to have the same length as the pattern count")
+	}
+
+	return r.ReplaceAllFunc(haystack, func(match Match) (string, bool) {
+		return replaceWith[match.pattern], true
+	})
+}
+
+type Finder interface {
+	FindAll(haystack string) []Match
+	PatternCount() int
 }
 
 // FindAll returns the matches found in the haystack
@@ -103,6 +190,7 @@ func (a *AhoCorasickBuilder) Build(patterns []string) AhoCorasick {
 		ptr:                 ptr,
 		abi:                 abi,
 		matchOnlyWholeWords: a.matchOnlyWholeWords,
+		patternCount:        len(patterns),
 	}
 }
 
