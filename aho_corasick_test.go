@@ -168,20 +168,3 @@ type testCase struct {
 	haystack string
 	matches  []Match
 }
-
-func BenchmarkAhoCorasick_LeftmostInsensitiveWholeWord(b *testing.B) {
-	for _, tc := range leftmostInsensitiveWholeWordTestCases {
-		tt := tc
-		builder := NewAhoCorasickBuilder(Opts{
-			AsciiCaseInsensitive: true,
-			MatchOnlyWholeWords:  true,
-			MatchKind:            LeftMostLongestMatch,
-		})
-		ac := builder.Build(tt.patterns)
-		b.Run("", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				_ = ac.FindAll(tt.haystack)
-			}
-		})
-	}
-}
