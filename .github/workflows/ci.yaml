@@ -34,7 +34,7 @@ jobs:
           toolchain: stable
 
       - name: setup aho-corasick for cgo
-        run: cargo build --release
+        run: cargo build --release && ls buildtools/aho-corasick/target/release
         working-directory: buildtools/aho-corasick
 
       - name: setup tinygo
