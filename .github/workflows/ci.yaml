@@ -1,0 +1,74 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - cgo
+          - tinygo
+          - wazero
+        os:
+          - macos-12
+          - ubuntu-22.04
+          - windows-2022
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.8'
+          cache: true
+
+      - uses: actions-rs/toolchain@v1
+
+      - name: setup aho-corasick for cgo
+        run: cargo build --release
+        working-directory: buildtools/aho-corasick
+
+      - name: setup tinygo
+        if: ${{ matrix.mode == 'tinygo' }}
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.26.0
+      - name: setup wasmtime for tinygo (linux or mac)
+        if: ${{ (startsWith(matrix.os, 'ubuntu-') || startsWith(matrix.os, 'macos-')) && matrix.mode == 'tinygo' }}
+        run: |
+          curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v3.0.1
+          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+      - name: setup wasmtime for tinygo (windows)
+        if: ${{ startsWith(matrix.os, 'windows-') && matrix.mode == 'tinygo' }}
+        run: |
+          gh release download v3.0.1 -p '*-windows.zip' -D $HOME -R github.com/bytecodealliance/wasmtime
+          Expand-Archive -Path $HOME\wasmtime-v3.0.1-x86_64-windows.zip -DestinationPath $HOME
+          Add-Content $env:GITHUB_PATH "$HOME\wasmtime-v3.0.1-x86_64-windows"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: go run mage.go check
+        env:
+          WASI_TEST_MODE: ${{ matrix.mode }}
+
+  # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
+  # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
+  # but not build without a C toolchain available, e.g. if C source files are checked into the repo
+  # without a build tag to exclude them from pure-Go builds.
+  docker-build:
+    runs-on: ubuntu-22.04
+    container:
+      image: golang:alpine
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
+
+      - run: go run mage.go test

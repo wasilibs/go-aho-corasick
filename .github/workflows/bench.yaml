@@ -1,0 +1,35 @@
+name: Benchmark
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.yaml'
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.8'
+          cache: true
+
+      - uses: actions-rs/toolchain@v1
+
+      - name: setup aho-corasick for cgo
+        run: cargo build --release
+        working-directory: buildtools/aho-corasick
+
+      - run: go run mage.go benchall
+
+      - run: go run mage.go wafbenchall
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: results
+          path: build/*bench*.txt
