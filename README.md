@@ -1,6 +1,6 @@
 # go-aho-corasick
 
-_Note: Go applications should use [petar-dambovaliev/aho-corasick][1] instead for better performance
+_Note: Go applications should use [petar-dambovaliev/aho-corasick][1] instead for better performance.
 Go support using [wazero][3] is provided here mostly as a performance analysis of wrapped vs rewritten libraries._
 
 go-aho-corasick is a library for aho-corasick which wraps the Rust [BurntSushi/aho-corasick][2] library.
