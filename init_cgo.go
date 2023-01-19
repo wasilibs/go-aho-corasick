@@ -3,6 +3,6 @@
 package aho_corasick
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/buildtools/aho-corasick/target/release -laho_corasick
+#cgo LDFLAGS: ${SRCDIR}/buildtools/aho-corasick/target/release/libaho_corasick.a
 */
 import "C"
