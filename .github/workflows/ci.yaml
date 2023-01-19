@@ -29,17 +29,13 @@ jobs:
           go-version: '^1.18.8'
           cache: true
 
-      - uses: actions-rs/toolchain@v1
-        if: ${{ matrix.mode == 'cgo' }}
-        with:
-          toolchain: stable
-          override: true
-          default: true
-          target: ${{ startsWith(matrix.os, 'windows-') && 'x86_64-pc-windows-gnu' || '' }}
-
       - name: setup aho-corasick for cgo
         if: ${{ matrix.mode == 'cgo' }}
-        run: cargo build --release && ls target/release
+        run: |
+          rustup toolchain install stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustup default stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          cargo build --release
+          ls target/release
         working-directory: buildtools/aho-corasick
 
       - name: setup tinygo
