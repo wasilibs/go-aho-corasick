@@ -3,6 +3,9 @@
 package aho_corasick
 
 /*
+
+#include <stddef.h>
+
 void* new_matcher(void* patterns, int patterns_len, int ascii_case_insensitive, int dfa, int match_kind);
 void* find_iter(void* ac, void* value, int value_len);
 int find_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
