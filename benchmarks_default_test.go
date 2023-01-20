@@ -20,3 +20,7 @@ func NewAhoCorasickBuilderBenchmark(o Opts) ac.AhoCorasickBuilder {
 	}
 	return ac.NewAhoCorasickBuilder(opts)
 }
+
+func NewReplacerBenchmark(a ac.AhoCorasick) ac.Replacer {
+	return ac.NewReplacer(a)
+}
