@@ -13,7 +13,7 @@ func BenchmarkReplaceAll(b *testing.B) {
 					MatchKind:            LeftMostLongestMatch,
 					DFA:                  dfa,
 				})
-				ac := NewReplacer(builder.Build(tt.patterns))
+				ac := NewReplacerBenchmark(builder.Build(tt.patterns))
 				dfaStr := "nfa"
 				if dfa {
 					dfaStr = "dfa"
