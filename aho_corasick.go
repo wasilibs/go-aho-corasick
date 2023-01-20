@@ -155,8 +155,8 @@ type Opts struct {
 }
 
 // NewAhoCorasickBuilder creates a new AhoCorasickBuilder based on Opts
-func NewAhoCorasickBuilder(o Opts) AhoCorasickBuilder {
-	return AhoCorasickBuilder{
+func NewAhoCorasickBuilder(o Opts) *AhoCorasickBuilder {
+	return &AhoCorasickBuilder{
 		asciiCaseInsensitive: o.AsciiCaseInsensitive,
 		matchOnlyWholeWords:  o.MatchOnlyWholeWords,
 		matchKind:            o.MatchKind,

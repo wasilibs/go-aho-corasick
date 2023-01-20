@@ -1,3 +1,5 @@
+// Benchmarks taken from Go reference library https://github.com/petar-dambovaliev/aho-corasick
+
 package aho_corasick
 
 import "testing"
