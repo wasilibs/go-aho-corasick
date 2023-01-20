@@ -10,4 +10,4 @@ crate-type = ["staticlib", "cdylib"]
 name = "aho_corasick"
 
 [dependencies]
-aho-corasick = "0.7.20"
+aho-corasick = { git = "https://github.com/BurntSushi/aho-corasick", rev = "e74ed25054d65aae4bd6d648e163c5635e0ce6ab" }

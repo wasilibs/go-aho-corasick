@@ -8,7 +8,7 @@ use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 use std::slice;
 use std::str;
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder, FindIter, FindOverlappingIter, MatchKind};
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, AhoCorasickKind, FindIter, FindOverlappingIter, MatchKind};
 
 #[no_mangle]
 pub extern "C" fn new_matcher(patterns_ptr: *const c_char, patterns_len: usize, ascii_case_insensitive: bool, dfa: bool, match_kind: MatchKind) -> Box<AhoCorasick> {
@@ -22,13 +22,17 @@ pub extern "C" fn new_matcher(patterns_ptr: *const c_char, patterns_len: usize, 
         off += pattern.len() + 1;
     }
 
-    let ac = AhoCorasickBuilder::new()
-        .ascii_case_insensitive(ascii_case_insensitive)
-        .dfa(dfa)
-        .match_kind(match_kind)
-        .build(patterns);
 
-    return Box::new(ac);
+    let mut ac = AhoCorasickBuilder::new();
+    ac
+        .ascii_case_insensitive(ascii_case_insensitive)
+        .match_kind(match_kind);
+
+    if dfa {
+        ac.kind(AhoCorasickKind::DFA);
+    }
+
+    return Box::new(ac.build(patterns).unwrap());
 }
 
 #[no_mangle]
@@ -37,15 +41,15 @@ pub extern "C" fn delete_matcher(_matcher: Box<AhoCorasick>) {
 }
 
 #[no_mangle]
-pub extern "C" fn find_iter(ac: &AhoCorasick, value_ptr: usize, value_len: usize) -> Box<FindIter<usize>> {
+pub extern "C" fn find_iter(ac: &AhoCorasick, value_ptr: usize, value_len: usize) -> Box<FindIter> {
     let value = ptr_to_string(value_ptr, value_len);
     return Box::new(ac.find_iter(value));
 }
 
 #[no_mangle]
-pub extern "C" fn find_iter_next(iter: &mut FindIter<usize>, pattern: &mut usize, start: &mut usize, end: &mut usize) -> bool {
+pub extern "C" fn find_iter_next(iter: &mut FindIter, pattern: &mut usize, start: &mut usize, end: &mut usize) -> bool {
     iter.next().map(|m| {
-        *pattern = m.pattern();
+        *pattern = m.pattern().as_usize();
         *start = m.start();
         *end = m.end();
         true
@@ -53,20 +57,20 @@ pub extern "C" fn find_iter_next(iter: &mut FindIter<usize>, pattern: &mut usize
 }
 
 #[no_mangle]
-pub extern "C" fn find_iter_delete(_iter: Box<FindIter<usize>>) {
+pub extern "C" fn find_iter_delete(_iter: Box<FindIter>) {
     // Box takes ownership and will release
 }
 
 #[no_mangle]
-pub extern "C" fn overlapping_iter(ac: &AhoCorasick, value_ptr: usize, value_len: usize) -> Box<FindOverlappingIter<usize>> {
+pub extern "C" fn overlapping_iter(ac: &AhoCorasick, value_ptr: usize, value_len: usize) -> Box<FindOverlappingIter> {
     let value = ptr_to_string(value_ptr, value_len);
     return Box::new(ac.find_overlapping_iter(value));
 }
 
 #[no_mangle]
-pub extern "C" fn overlapping_iter_next(iter: &mut FindOverlappingIter<usize>, pattern: &mut usize, start: &mut usize, end: &mut usize) -> bool {
+pub extern "C" fn overlapping_iter_next(iter: &mut FindOverlappingIter, pattern: &mut usize, start: &mut usize, end: &mut usize) -> bool {
     iter.next().map(|m| {
-        *pattern = m.pattern();
+        *pattern = m.pattern().as_usize();
         *start = m.start();
         *end = m.end();
         true
@@ -74,7 +78,7 @@ pub extern "C" fn overlapping_iter_next(iter: &mut FindOverlappingIter<usize>, p
 }
 
 #[no_mangle]
-pub extern "C" fn overlapping_iter_delete(_iter: Box<FindOverlappingIter<usize>>) {
+pub extern "C" fn overlapping_iter_delete(_iter: Box<FindOverlappingIter>) {
     // Box takes ownership and will release
 }
 
