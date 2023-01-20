@@ -4,8 +4,6 @@ package aho_corasick
 
 import ac "github.com/petar-dambovaliev/aho-corasick"
 
-type ReplacerBenchmark = ac.Replacer
-
 func NewAhoCorasickBuilderBenchmark(o Opts) ac.AhoCorasickBuilder {
 	opts := ac.Opts{
 		AsciiCaseInsensitive: o.AsciiCaseInsensitive,
@@ -21,8 +19,4 @@ func NewAhoCorasickBuilderBenchmark(o Opts) ac.AhoCorasickBuilder {
 		opts.MatchKind = ac.LeftMostFirstMatch
 	}
 	return ac.NewAhoCorasickBuilder(opts)
-}
-
-func NewReplacerBenchmark(a ac.AhoCorasick) ac.Replacer {
-	return ac.NewReplacer(a)
 }
