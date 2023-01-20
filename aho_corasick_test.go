@@ -237,7 +237,7 @@ func TestAhoCorasick_IterOverlapping(t *testing.T) {
 
 func TestAhoCorasick_LeftmostInsensitiveWholeWord(t *testing.T) {
 	for i, t2 := range leftmostInsensitiveWholeWordTestCases {
-		builders := []AhoCorasickBuilder{NewAhoCorasickBuilder(Opts{
+		builders := []*AhoCorasickBuilder{NewAhoCorasickBuilder(Opts{
 			AsciiCaseInsensitive: true,
 			MatchOnlyWholeWords:  true,
 			MatchKind:            LeftMostLongestMatch,

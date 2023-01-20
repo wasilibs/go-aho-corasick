@@ -2,7 +2,7 @@
 
 package aho_corasick
 
-func NewAhoCorasickBuilderBenchmark(o Opts) AhoCorasickBuilder {
+func NewAhoCorasickBuilderBenchmark(o Opts) *AhoCorasickBuilder {
 	return NewAhoCorasickBuilder(o)
 }
 
