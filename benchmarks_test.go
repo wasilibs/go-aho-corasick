@@ -14,7 +14,7 @@ func BenchmarkReplaceAll(b *testing.B) {
 					DFA:                  dfa,
 				})
 				ac := NewReplacerBenchmark(builder.Build(tt.patterns))
-				dfaStr := "nfa"
+				dfaStr := "default"
 				if dfa {
 					dfaStr = "dfa"
 				}
@@ -40,7 +40,7 @@ func BenchmarkLeftmostInsensitiveWholeWord(b *testing.B) {
 					DFA:                  dfa,
 				})
 				ac := builder.Build(tt.patterns)
-				dfaStr := "nfa"
+				dfaStr := "default"
 				if dfa {
 					dfaStr = "dfa"
 				}
