@@ -107,7 +107,7 @@ var acsNFA []Replacer
 func init() {
 	acsNFA = make([]Replacer, len(testCasesReplace))
 	for i, t2 := range testCasesReplace {
-		builder := NewAhoCorasickBuilderBenchmark(Opts{
+		builder := NewAhoCorasickBuilder(Opts{
 			AsciiCaseInsensitive: true,
 			MatchOnlyWholeWords:  true,
 			MatchKind:            LeftMostLongestMatch,
