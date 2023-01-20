@@ -2,50 +2,53 @@ package aho_corasick
 
 import "testing"
 
-var benchmarkReplacerDFA []ReplacerBenchmark
-
-func init() {
-	benchmarkReplacerDFA = make([]ReplacerBenchmark, len(testCasesReplace))
-	for i, t2 := range testCasesReplace {
-		builder := NewAhoCorasickBuilderBenchmark(Opts{
-			AsciiCaseInsensitive: true,
-			MatchOnlyWholeWords:  true,
-			MatchKind:            LeftMostLongestMatch,
-			DFA:                  true,
+func BenchmarkReplaceAll(b *testing.B) {
+	for _, tc := range testCasesReplace {
+		tt := tc
+		b.Run(tt.name, func(b *testing.B) {
+			for _, dfa := range []bool{false, true} {
+				builder := NewAhoCorasickBuilderBenchmark(Opts{
+					AsciiCaseInsensitive: true,
+					MatchOnlyWholeWords:  true,
+					MatchKind:            LeftMostLongestMatch,
+					DFA:                  dfa,
+				})
+				ac := NewReplacer(builder.Build(tt.patterns))
+				dfaStr := "nfa"
+				if dfa {
+					dfaStr = "dfa"
+				}
+				b.Run(dfaStr, func(b *testing.B) {
+					for i := 0; i < b.N; i++ {
+						_ = ac.ReplaceAll(tt.haystack, tt.replaceWith)
+					}
+				})
+			}
 		})
-		ac := builder.Build(t2.patterns)
-		benchmarkReplacerDFA[i] = NewReplacerBenchmark(ac)
 	}
 }
 
-func BenchmarkAhoCorasick_ReplaceAllDFA(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		for i, ac := range benchmarkReplacerDFA {
-			_ = ac.ReplaceAll(testCasesReplace[i].haystack, testCasesReplace[i].replaceWith)
-		}
-	}
-}
-
-func BenchmarkAhoCorasick_ReplaceAllNFA(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		for i, ac := range acsNFA {
-			_ = ac.ReplaceAll(testCasesReplace[i].haystack, testCasesReplace[i].replaceWith)
-		}
-	}
-}
-
-func BenchmarkAhoCorasick_LeftmostInsensitiveWholeWord(b *testing.B) {
+func BenchmarkLeftmostInsensitiveWholeWord(b *testing.B) {
 	for _, tc := range leftmostInsensitiveWholeWordTestCases {
 		tt := tc
-		builder := NewAhoCorasickBuilderBenchmark(Opts{
-			AsciiCaseInsensitive: true,
-			MatchOnlyWholeWords:  true,
-			MatchKind:            LeftMostLongestMatch,
-		})
-		ac := builder.Build(tt.patterns)
-		b.Run("", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				_ = ac.FindAll(tt.haystack)
+		b.Run(tt.name, func(b *testing.B) {
+			for _, dfa := range []bool{false, true} {
+				builder := NewAhoCorasickBuilderBenchmark(Opts{
+					AsciiCaseInsensitive: true,
+					MatchOnlyWholeWords:  true,
+					MatchKind:            LeftMostLongestMatch,
+					DFA:                  dfa,
+				})
+				ac := builder.Build(tt.patterns)
+				dfaStr := "nfa"
+				if dfa {
+					dfaStr = "dfa"
+				}
+				b.Run(dfaStr, func(b *testing.B) {
+					for i := 0; i < b.N; i++ {
+						_ = ac.FindAll(tt.haystack)
+					}
+				})
 			}
 		})
 	}
