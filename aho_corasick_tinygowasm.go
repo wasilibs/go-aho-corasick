@@ -6,7 +6,7 @@ package aho_corasick
 
 #include <stddef.h>
 
-void* new_matcher(void* patterns, int patterns_len, int ascii_case_insensitive, int dfa, int match_kind);
+void* new_matcher(void* patterns, void* lens, int num_patterns, int ascii_case_insensitive, int dfa, int match_kind);
 void delete_matcher(void* matcher);
 void* find_iter(void* ac, void* value, int value_len);
 int find_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
@@ -36,8 +36,19 @@ func (abi *ahoCorasickABI) startOperation(memorySize int) {
 func (abi *ahoCorasickABI) endOperation() {
 }
 
-func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool, dfa bool, matchKind int) uintptr {
-	patternsSh := (*reflect.SliceHeader)(unsafe.Pointer(&patterns))
+func (abi *ahoCorasickABI) newMatcher(patterns []string, patternBytes int, asciiCaseInsensitive bool, dfa bool, matchKind int) uintptr {
+	patternsBuf := make([]byte, patternBytes)
+	lens := make([]uintptr, len(patterns))
+
+	off := 0
+	for i, p := range patterns {
+		copy(patternsBuf[off:], p)
+		off += len(p)
+		lens[i] = uintptr(len(p))
+	}
+
+	patternsSh := (*reflect.SliceHeader)(unsafe.Pointer(&patternsBuf))
+	lensSh := (*reflect.SliceHeader)(unsafe.Pointer(&lens))
 	aci := 0
 	if asciiCaseInsensitive {
 		aci = 1
@@ -47,7 +58,7 @@ func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool
 	if dfa {
 		d = 1
 	}
-	ptr := C.new_matcher(unsafe.Pointer(patternsSh.Data), C.int(patternsSh.Len), C.int(aci), C.int(d), C.int(matchKind))
+	ptr := C.new_matcher(unsafe.Pointer(patternsSh.Data), unsafe.Pointer(lensSh.Data), C.int(len(patterns)), C.int(aci), C.int(d), C.int(matchKind))
 	runtime.KeepAlive(patterns)
 	return uintptr(ptr)
 }
