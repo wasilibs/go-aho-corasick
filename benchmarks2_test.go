@@ -26,6 +26,8 @@ var words100 = strings.Split(strings.TrimSpace(words100Txt), "\n")
 var words5000Txt string
 var words5000 = strings.Split(strings.TrimSpace(words5000Txt), "\n")
 
+var same = strings.Repeat("z", 10_000)
+
 func BenchmarkBurntSushi(b *testing.B) {
 	tests := []struct {
 		groupName string
@@ -137,6 +139,83 @@ func BenchmarkBurntSushi(b *testing.B) {
 			corpus:    random10x,
 			count:     0,
 			patterns:  words100,
+		},
+		{
+			groupName: "same",
+			benchName: "onebyte/match",
+			corpus:    same,
+			count:     10_000,
+			patterns:  []string{"z"},
+		},
+		{
+			groupName: "same",
+			benchName: "onebyte/nomatch",
+			corpus:    same,
+			count:     0,
+			patterns:  []string{"a"},
+		},
+		{
+			groupName: "same",
+			benchName: "twobytes/match",
+			corpus:    same,
+			count:     10_000,
+			patterns:  []string{"z", "a"},
+		},
+		{
+			groupName: "same",
+			benchName: "twobytes/nomatch",
+			corpus:    same,
+			count:     0,
+			patterns:  []string{"a", "b"},
+		},
+		{
+			groupName: "same",
+			benchName: "threebytes/match",
+			corpus:    same,
+			count:     10_000,
+			patterns:  []string{"z", "a", "b"},
+		},
+		{
+			groupName: "same",
+			benchName: "threebytes/nomatch",
+			corpus:    same,
+			count:     0,
+			patterns:  []string{"a", "b", "c"},
+		},
+		{
+			groupName: "same",
+			benchName: "fourbytes/match",
+			corpus:    same,
+			count:     10_000,
+			patterns:  []string{"z", "a", "b", "c"},
+		},
+		{
+			groupName: "same",
+			benchName: "fourbytes/nomatch",
+			corpus:    same,
+			count:     0,
+			patterns:  []string{"a", "b", "c", "d"},
+		},
+		{
+			groupName: "same",
+			benchName: "fivebytes/match",
+			corpus:    same,
+			count:     10_000,
+			patterns:  []string{"z", "a", "b", "c", "d"},
+		},
+		{
+			groupName: "same",
+			benchName: "fivebytes/nomatch",
+			corpus:    same,
+			count:     0,
+			patterns:  []string{"a", "b", "c", "d", "e"},
+		},
+		{
+			groupName: "same",
+			benchName: "samebyte/match",
+			corpus:    same,
+			count:     1_000,
+			patterns:  []string{"zzzzzzzzzz"},
 		},
 		{
 			groupName: "sherlock",
