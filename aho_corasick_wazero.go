@@ -263,12 +263,6 @@ func (m *sharedMemory) allocate(size uint32) uintptr {
 	return uintptr(ptr)
 }
 
-func (m *sharedMemory) write(abi *ahoCorasickABI, b []byte) uintptr {
-	ptr := m.allocate(uint32(len(b)))
-	abi.wasmMemory.Write(uint32(ptr), b)
-	return ptr
-}
-
 type cString struct {
 	ptr    uintptr
 	length int
