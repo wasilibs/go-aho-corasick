@@ -173,22 +173,14 @@ type AhoCorasickBuilder struct {
 
 // Build builds a (non)deterministic finite automata from the user provided patterns
 func (a *AhoCorasickBuilder) Build(patterns []string) AhoCorasick {
-	// Concatenate to NULL-terminated strings
-	numBytes := 0
+	patternBytes := 0
 	for _, pattern := range patterns {
-		numBytes += len(pattern) + 1
-	}
-
-	buf := make([]byte, numBytes)
-	idx := 0
-	for _, pattern := range patterns {
-		copy(buf[idx:], pattern)
-		idx += len(pattern) + 1
+		patternBytes += len(pattern)
 	}
 
 	abi := newABI()
-	abi.startOperation(numBytes)
-	ptr := abi.newMatcher(buf, a.asciiCaseInsensitive, a.dfa, int(a.matchKind))
+	abi.startOperation(patternBytes + 4*len(patterns))
+	ptr := abi.newMatcher(patterns, patternBytes, a.asciiCaseInsensitive, a.dfa, int(a.matchKind))
 	abi.endOperation()
 
 	runtime.SetFinalizer(abi, func(abi *ahoCorasickABI) {

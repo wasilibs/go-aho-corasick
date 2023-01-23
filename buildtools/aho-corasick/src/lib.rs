@@ -11,17 +11,18 @@ use std::str;
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, AhoCorasickKind, FindIter, FindOverlappingIter, MatchKind};
 
 #[no_mangle]
-pub extern "C" fn new_matcher(patterns_ptr: *const c_char, patterns_len: usize, ascii_case_insensitive: bool, dfa: bool, match_kind: MatchKind) -> Box<AhoCorasick> {
+pub extern "C" fn new_matcher(patterns_ptr: usize, patterns_len: *const usize, num_patterns: usize, ascii_case_insensitive: bool, dfa: bool, match_kind: MatchKind) -> Box<AhoCorasick> {
     let mut patterns = Vec::new();
 
-    let mut off = 0;
-    while off < patterns_len {
-        let pattern_slice = unsafe { CStr::from_ptr(patterns_ptr.offset(off as isize)) };
-        let pattern = pattern_slice.to_str().unwrap();
-        patterns.push(pattern);
-        off += pattern.len() + 1;
+    let mut off = 0usize;
+    for i in 0..num_patterns {
+        unsafe {
+            let len = *patterns_len.offset(i as isize);
+            let pattern = ptr_to_string(patterns_ptr+off, len);
+            patterns.push(pattern);
+            off += len;
+        }
     }
-
 
     let mut ac = AhoCorasickBuilder::new();
     ac

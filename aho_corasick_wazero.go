@@ -101,8 +101,20 @@ func (abi *ahoCorasickABI) endOperation() {
 	abi.mu.Unlock()
 }
 
-func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool, dfa bool, matchKind int) uintptr {
-	patternsPtr := abi.memory.write(abi, patterns)
+func (abi *ahoCorasickABI) newMatcher(patterns []string, patternBytes int, asciiCaseInsensitive bool, dfa bool, matchKind int) uintptr {
+	patternsPtr := abi.memory.allocate(uint32(patternBytes))
+	lensPtr := abi.memory.allocate(uint32(len(patterns) * 4))
+
+	buf, ok := abi.wasmMemory.Read(uint32(patternsPtr), uint32(patternBytes))
+	if !ok {
+		panic(errFailedRead)
+	}
+	off := 0
+	for i, p := range patterns {
+		copy(buf[off:], p)
+		off += len(p)
+		abi.wasmMemory.WriteUint32Le(uint32(lensPtr)+uint32(i*4), uint32(len(p)))
+	}
 
 	aci := 0
 	if asciiCaseInsensitive {
@@ -114,7 +126,7 @@ func (abi *ahoCorasickABI) newMatcher(patterns []byte, asciiCaseInsensitive bool
 		d = 1
 	}
 
-	res, err := abi.new_matcher.Call(context.Background(), uint64(patternsPtr), uint64(len(patterns)), uint64(aci), uint64(d), uint64(matchKind))
+	res, err := abi.new_matcher.Call(context.Background(), uint64(patternsPtr), uint64(lensPtr), uint64(len(patterns)), uint64(aci), uint64(d), uint64(matchKind))
 	if err != nil {
 		panic(err)
 	}
@@ -249,12 +261,6 @@ func (m *sharedMemory) allocate(size uint32) uintptr {
 	ptr := m.bufPtr + m.nextIdx
 	m.nextIdx += size
 	return uintptr(ptr)
-}
-
-func (m *sharedMemory) write(abi *ahoCorasickABI, b []byte) uintptr {
-	ptr := m.allocate(uint32(len(b)))
-	abi.wasmMemory.Write(uint32(ptr), b)
-	return ptr
 }
 
 type cString struct {
