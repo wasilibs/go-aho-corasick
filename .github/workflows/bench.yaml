@@ -40,7 +40,7 @@ jobs:
         env:
           LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
 
-      - run: go run mage.go wafbenchall
+      - run: go run mage.go -v wafbenchall
         env:
           LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
 
