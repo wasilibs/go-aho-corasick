@@ -5,7 +5,11 @@ package wafbench
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/corazawaf/coraza/v3/operators"
@@ -112,6 +116,42 @@ func newPMFromFile(options rules.OperatorOptions) (rules.Operator, error) {
 	})
 
 	return &pm{matcher: builder.Build(lines)}, nil
+}
+
+var errEmptyPaths = errors.New("empty paths")
+
+func loadFromFile(filepath string, paths []string, root fs.FS) ([]byte, error) {
+	if path.IsAbs(filepath) {
+		return fs.ReadFile(root, filepath)
+	}
+
+	if len(paths) == 0 {
+		return nil, errEmptyPaths
+	}
+
+	// handling files by operators is hard because we must know the paths where we can
+	// search, for example, the policy path or the binary path...
+	// CRS stores the .data files in the same directory as the directives
+	var (
+		content []byte
+		err     error
+	)
+
+	for _, p := range paths {
+		absFilepath := path.Join(p, filepath)
+		content, err = fs.ReadFile(root, absFilepath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+
+		return content, nil
+	}
+
+	return nil, err
 }
 
 func init() {
