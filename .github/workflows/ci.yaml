@@ -68,7 +68,7 @@ jobs:
       - run: go run mage.go check
         env:
           WASI_TEST_MODE: ${{ matrix.mode }}
-          LD_LIBRARY_PATH: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' && format('{0}/{1}', github.workspace, '/buildtools/aho-corasick/target/release' || '' }}
+          LD_LIBRARY_PATH: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' && format('{0}/{1}', github.workspace, '/buildtools/aho-corasick/target/release') || '' }}
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
