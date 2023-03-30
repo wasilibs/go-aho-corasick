@@ -38,11 +38,11 @@ jobs:
 
       - run: go run mage.go benchall
         env:
-          LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
+          LD_LIBRARY_PATH: ${{ github.workspace }}/buildtools/aho-corasick/target/release
 
       - run: go run mage.go wafbenchall
         env:
-          LD_LIBRARY_PATH: ./buildtools/aho-corasick/target/release
+          LD_LIBRARY_PATH: ${{ github.workspace }}/buildtools/aho-corasick/target/release
 
       - uses: actions/upload-artifact@v3
         with:
