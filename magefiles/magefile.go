@@ -144,6 +144,7 @@ func WAFBenchAll() error {
 	fmt.Println("Executing wazero benchmarks")
 	wazero, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeWazero)...)
 	if err != nil {
+		fmt.Printf("Error executing wazero benchmarks\n%s", wazero)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "wafbench.txt"), []byte(wazero), 0o644); err != nil {
@@ -153,6 +154,7 @@ func WAFBenchAll() error {
 	fmt.Println("Executing cgo benchmarks")
 	cgo, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeCGO)...)
 	if err != nil {
+		fmt.Printf("Error executing cgo benchmarks\n%s", cgo)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "wafbench_cgo.txt"), []byte(cgo), 0o644); err != nil {
@@ -162,6 +164,7 @@ func WAFBenchAll() error {
 	fmt.Println("Executing stdlib benchmarks")
 	stdlib, err := sh.Output("go", benchArgs("./wafbench", 5, benchModeSTDLib)...)
 	if err != nil {
+		fmt.Printf("Error executing stdlib benchmarks\n%s", stdlib)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join("build", "wafbench_stdlib.txt"), []byte(stdlib), 0o644); err != nil {
