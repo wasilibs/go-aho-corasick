@@ -30,7 +30,7 @@ pub extern "C" fn new_matcher(patterns_ptr: usize, patterns_len: *const usize, n
         .match_kind(match_kind);
 
     if dfa {
-        ac.kind(AhoCorasickKind::DFA);
+        ac.kind(Some(AhoCorasickKind::DFA));
     }
 
     return Box::new(ac.build(patterns).unwrap());

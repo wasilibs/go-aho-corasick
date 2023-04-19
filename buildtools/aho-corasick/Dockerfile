@@ -5,7 +5,7 @@ FROM rust:1-alpine
 
 RUN apk add --no-cache binaryen && rustup target add wasm32-wasi
 
-ADD . /aho-corasick
+ADD buildtools/aho-corasick /aho-corasick
 WORKDIR /aho-corasick
 ENV RUSTFLAGS "-C target-feature=-crt-static -C link-args=--export=malloc -C link-args=--export=free"
 RUN cargo build --release --target wasm32-wasi
