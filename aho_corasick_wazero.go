@@ -41,7 +41,8 @@ type ahoCorasickABI struct {
 
 	wasmMemory api.Memory
 
-	mod api.Module
+	mod       api.Module
+	callStack []uint64
 
 	memory sharedMemory
 	mu     sync.Mutex
@@ -69,6 +70,8 @@ func newABI() *ahoCorasickABI {
 		panic(err)
 	}
 
+	callStack := make([]uint64, 6)
+
 	return &ahoCorasickABI{
 		new_matcher:             mod.ExportedFunction("new_matcher"),
 		delete_matcher:          mod.ExportedFunction("delete_matcher"),
@@ -84,6 +87,7 @@ func newABI() *ahoCorasickABI {
 
 		wasmMemory: mod.Memory(),
 		mod:        mod,
+		callStack:  callStack,
 	}
 }
 
@@ -121,28 +125,38 @@ func (abi *ahoCorasickABI) newMatcher(patterns []string, patternBytes int, ascii
 		d = 1
 	}
 
-	res, err := abi.new_matcher.Call(context.Background(), uint64(patternsPtr), uint64(lensPtr), uint64(len(patterns)), uint64(aci), uint64(d), uint64(matchKind))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(patternsPtr)
+	callStack[1] = uint64(lensPtr)
+	callStack[2] = uint64(len(patterns))
+	callStack[3] = uint64(aci)
+	callStack[4] = uint64(d)
+	callStack[5] = uint64(matchKind)
+	if err := abi.new_matcher.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 
-	return uintptr(res[0])
+	return uintptr(callStack[0])
 }
 
 func (abi *ahoCorasickABI) deleteMatcher(ptr uintptr) {
-	_, err := abi.delete_matcher.Call(context.Background(), uint64(ptr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(ptr)
+	if err := abi.delete_matcher.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 }
 
 func (abi *ahoCorasickABI) findIter(acPtr uintptr, value cString) uintptr {
-	res, err := abi.find_iter.Call(context.Background(), uint64(acPtr), uint64(value.ptr), uint64(value.length))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(acPtr)
+	callStack[1] = uint64(value.ptr)
+	callStack[2] = uint64(value.length)
+	if err := abi.find_iter.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 
-	return uintptr(res[0])
+	return uintptr(callStack[0])
 }
 
 func (abi *ahoCorasickABI) findIterNext(iter uintptr) (int, int, int, bool) {
@@ -150,12 +164,16 @@ func (abi *ahoCorasickABI) findIterNext(iter uintptr) (int, int, int, bool) {
 	startPtr := abi.memory.allocate(4)
 	endPtr := abi.memory.allocate(4)
 
-	res, err := abi.find_iter_next.Call(context.Background(), uint64(iter), uint64(patternPtr), uint64(startPtr), uint64(endPtr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(iter)
+	callStack[1] = uint64(patternPtr)
+	callStack[2] = uint64(startPtr)
+	callStack[3] = uint64(endPtr)
+	if err := abi.find_iter_next.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 
-	if res[0] == 0 {
+	if callStack[0] == 0 {
 		return 0, 0, 0, false
 	}
 
@@ -176,19 +194,23 @@ func (abi *ahoCorasickABI) findIterNext(iter uintptr) (int, int, int, bool) {
 }
 
 func (abi *ahoCorasickABI) findIterDelete(iter uintptr) {
-	_, err := abi.find_iter_delete.Call(context.Background(), uint64(iter))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(iter)
+	if err := abi.find_iter_delete.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 }
 
 func (abi *ahoCorasickABI) overlappingIter(acPtr uintptr, value cString) uintptr {
-	res, err := abi.overlapping_iter.Call(context.Background(), uint64(acPtr), uint64(value.ptr), uint64(value.length))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(acPtr)
+	callStack[1] = uint64(value.ptr)
+	callStack[2] = uint64(value.length)
+	if err := abi.overlapping_iter.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 
-	return uintptr(res[0])
+	return uintptr(callStack[0])
 }
 
 func (abi *ahoCorasickABI) overlappingIterNext(iter uintptr) (int, int, int, bool) {
@@ -196,12 +218,16 @@ func (abi *ahoCorasickABI) overlappingIterNext(iter uintptr) (int, int, int, boo
 	startPtr := abi.memory.allocate(4)
 	endPtr := abi.memory.allocate(4)
 
-	res, err := abi.overlapping_iter_next.Call(context.Background(), uint64(iter), uint64(patternPtr), uint64(startPtr), uint64(endPtr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(iter)
+	callStack[1] = uint64(patternPtr)
+	callStack[2] = uint64(startPtr)
+	callStack[3] = uint64(endPtr)
+	if err := abi.overlapping_iter_next.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 
-	if res[0] == 0 {
+	if callStack[0] == 0 {
 		return 0, 0, 0, false
 	}
 
@@ -213,8 +239,9 @@ func (abi *ahoCorasickABI) overlappingIterNext(iter uintptr) (int, int, int, boo
 }
 
 func (abi *ahoCorasickABI) overlappingIterDelete(iter uintptr) {
-	_, err := abi.overlapping_iter_delete.Call(context.Background(), uint64(iter))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(iter)
+	if err := abi.overlapping_iter_delete.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 }
@@ -232,20 +259,21 @@ func (m *sharedMemory) reserve(abi *ahoCorasickABI, size uint32) {
 	}
 
 	ctx := context.Background()
+	callStack := abi.callStack
 	if m.bufPtr != 0 {
-		_, err := abi.free.Call(ctx, uint64(m.bufPtr))
-		if err != nil {
+		callStack[0] = uint64(m.bufPtr)
+		if err := abi.free.CallWithStack(ctx, callStack); err != nil {
 			panic(err)
 		}
 	}
 
-	res, err := abi.malloc.Call(ctx, uint64(size))
-	if err != nil {
+	callStack[0] = uint64(size)
+	if err := abi.malloc.CallWithStack(ctx, callStack); err != nil {
 		panic(err)
 	}
 
 	m.size = size
-	m.bufPtr = uint32(res[0])
+	m.bufPtr = uint32(callStack[0])
 }
 
 func (m *sharedMemory) allocate(size uint32) uintptr {
@@ -279,8 +307,9 @@ func (abi *ahoCorasickABI) newOwnedCString(s string) cString {
 }
 
 func (abi *ahoCorasickABI) freeOwnedCStringPtr(ptr uintptr) {
-	_, err := abi.free.Call(context.Background(), uint64(ptr))
-	if err != nil {
+	callStack := abi.callStack
+	callStack[0] = uint64(ptr)
+	if err := abi.free.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
 }
