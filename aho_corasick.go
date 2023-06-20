@@ -31,7 +31,12 @@ func (ac AhoCorasick) Iter(haystack string) Iter {
 	iterPtr := ac.abi.findIter(ac.ptr, cs)
 
 	iter := &findIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
-	runtime.SetFinalizer(iter, (*findIter).release)
+
+	// Use func(interface{}) form for nottinygc compatibility
+	runtime.SetFinalizer(iter, func(obj interface{}) {
+		obj.(*findIter).release()
+	})
+
 	return iter
 }
 
@@ -47,7 +52,11 @@ func (ac AhoCorasick) IterOverlapping(haystack string) Iter {
 	iterPtr := ac.abi.overlappingIter(ac.ptr, cs)
 
 	iter := &overlappingIter{ptr: iterPtr, abi: ac.abi, matchOnlyWholeWords: ac.matchOnlyWholeWords, haystack: haystack, haystackPtr: cs.ptr}
-	runtime.SetFinalizer(iter, (*overlappingIter).release)
+
+	// Use func(interface{}) form for nottinygc compatibility
+	runtime.SetFinalizer(iter, func(obj interface{}) {
+		obj.(*overlappingIter).release()
+	})
 	return iter
 }
 
@@ -183,8 +192,9 @@ func (a *AhoCorasickBuilder) Build(patterns []string) AhoCorasick {
 	ptr := abi.newMatcher(patterns, patternBytes, a.asciiCaseInsensitive, a.dfa, int(a.matchKind))
 	abi.endOperation()
 
-	runtime.SetFinalizer(abi, func(abi *ahoCorasickABI) {
-		abi.deleteMatcher(ptr)
+	// Use func(interface{}) form for nottinygc compatibility
+	runtime.SetFinalizer(abi, func(obj interface{}) {
+		obj.(*ahoCorasickABI).deleteMatcher(ptr)
 	})
 
 	return AhoCorasick{
