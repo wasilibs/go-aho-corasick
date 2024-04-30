@@ -10,4 +10,4 @@ crate-type = ["staticlib", "cdylib"]
 name = "aho_corasick"
 
 [dependencies]
-aho-corasick = "1.1.1"
+aho-corasick = "1.1.3"
