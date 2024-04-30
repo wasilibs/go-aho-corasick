@@ -3,9 +3,6 @@
 
 extern crate aho_corasick;
 
-use std::ffi::CStr;
-use std::mem::MaybeUninit;
-use std::os::raw::c_char;
 use std::slice;
 use std::str;
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, AhoCorasickKind, FindIter, FindOverlappingIter, MatchKind};
@@ -84,23 +81,36 @@ pub extern "C" fn overlapping_iter_delete(_iter: Box<FindOverlappingIter>) {
 }
 
 #[no_mangle]
-pub extern "C" fn matches(ac: &mut AhoCorasick, value_ptr: usize, value_len: usize, n: usize, matches: *mut usize) -> usize {
+pub extern "C" fn matches(ac: &mut AhoCorasick, value_ptr: usize, value_len: usize, limit: usize, num: &mut usize) -> *const usize {
+    let mut matches = Vec::new();
     let value = ptr_to_string(value_ptr, value_len);
-    std::mem::forget(&value);
 
-    let mut num = 0;
+    let mut count = 0;
     for value in ac.find_iter(value.as_bytes()) {
-        if num == n {
+        if count == limit {
             break;
         }
-        unsafe {
-            *matches.offset(2*num as isize) = value.start();
-            *matches.offset((2*num+1) as isize) = value.end();
-        }
-        num += 1;
+
+        matches.push(value.pattern().as_usize());
+        matches.push(value.start());
+        matches.push(value.end());
+
+        count += 1;
     }
 
-    return num
+    let b = matches.into_boxed_slice();
+    let ptr = b.as_ptr();
+    let len = b.len(); // Same as count since into_boxed_slice() truncates
+    std::mem::forget(b);
+    *num = len;
+    return ptr;
+}
+
+#[no_mangle]
+pub extern "C" fn matches_delete(ptr: *const usize, len: usize) {
+    unsafe {
+        let _ = Vec::from_raw_parts(ptr as *mut usize, len, len);
+    }
 }
 
 extern "C" {
