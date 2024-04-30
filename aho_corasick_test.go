@@ -253,7 +253,36 @@ func TestAhoCorasick_LeftmostInsensitiveWholeWord(t *testing.T) {
 			matches := ac.FindAll(t2.haystack)
 
 			if len(matches) != len(t2.matches) {
-				t.Errorf("test %v expected %v matches got %v", i, len(matches), len(t2.matches))
+				t.Errorf("test %v expected %v matches got %v", i, len(t2.matches), len(matches))
+			}
+			for i, m := range matches {
+				if m != t2.matches[i] {
+					t.Errorf("test %v expected %v matche got %v", i, m, t2.matches[i])
+				}
+			}
+		}
+	}
+}
+
+func TestAhoCorasick_LeftmostInsensitiveWholeWord_N(t *testing.T) {
+	for i, t2 := range leftmostInsensitiveWholeWordTestCases {
+		builders := []*AhoCorasickBuilder{NewAhoCorasickBuilder(Opts{
+			AsciiCaseInsensitive: true,
+			MatchOnlyWholeWords:  true,
+			MatchKind:            LeftMostLongestMatch,
+		}), NewAhoCorasickBuilder(Opts{
+			AsciiCaseInsensitive: true,
+			MatchOnlyWholeWords:  true,
+			MatchKind:            LeftMostLongestMatch,
+			DFA:                  true,
+		})}
+
+		for _, builder := range builders {
+			ac := builder.Build(t2.patterns)
+			matches := ac.FindN(t2.haystack, 1)
+
+			if len(matches) != 1 {
+				t.Errorf("test %v expected %v matches got %v", i, 1, len(matches))
 			}
 			for i, m := range matches {
 				if m != t2.matches[i] {
