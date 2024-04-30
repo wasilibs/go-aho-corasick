@@ -34,21 +34,15 @@ jobs:
           go-version: "^1.20"
           cache: true
 
-      - uses: actions/cache@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: ${{ matrix.mode == 'cgo' }}
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          toolchain: stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustflags: ""
 
       - name: setup aho-corasick for cgo
         if: ${{ matrix.mode == 'cgo' }}
         run: |
-          rustup toolchain install stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
-          rustup default stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
           cargo build --release
           ls target/release
         working-directory: buildtools/aho-corasick
