@@ -38,6 +38,7 @@ jobs:
         if: ${{ matrix.mode == 'cgo' }}
         with:
           toolchain: stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
+          rustflags: ""
 
       - name: setup aho-corasick for cgo
         if: ${{ matrix.mode == 'cgo' }}
