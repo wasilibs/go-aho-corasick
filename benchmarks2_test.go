@@ -327,15 +327,23 @@ func BenchmarkBurntSushi(b *testing.B) {
 					DFA:       dfa,
 				}).Build(tt.patterns)
 				b.Run(dfaStr, func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						cnt := 0
-						iter := ac.Iter(tt.corpus)
-						for iter.Next() != nil {
-							cnt++
-						}
-						if cnt != tt.count {
-							b.Errorf("expected %d matches, got %d", tt.count, cnt)
-						}
+					for _, iterate := range []bool{false, true} {
+						b.Run(fmt.Sprintf("iterate=%v", iterate), func(b *testing.B) {
+							for i := 0; i < b.N; i++ {
+								var cnt int
+								if iterate {
+									iter := ac.Iter(tt.corpus)
+									for iter.Next() != nil {
+										cnt++
+									}
+								} else {
+									cnt = len(ac.FindAll(tt.corpus))
+								}
+								if cnt != tt.count {
+									b.Errorf("expected %d matches, got %d", tt.count, cnt)
+								}
+							}
+						})
 					}
 				})
 			}

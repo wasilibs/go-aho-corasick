@@ -15,6 +15,9 @@ void find_iter_delete(void* iter);
 void* overlapping_iter(void* ac, void* value, int value_len);
 int overlapping_iter_next(void* iter, size_t* patternOut, size_t* startOut, size_t* endOut);
 void overlapping_iter_delete(void* iter);
+
+void* matches(void* ac, void* value, size_t value_len, size_t limit, size_t* numOut);
+void matches_delete(void* matches, size_t num);
 */
 import "C"
 
@@ -101,6 +104,31 @@ func (abi *ahoCorasickABI) overlappingIterNext(iterPtr uintptr) (pattern int, st
 
 func (abi *ahoCorasickABI) overlappingIterDelete(iterPtr uintptr) {
 	C.overlapping_iter_delete(unsafe.Pointer(iterPtr))
+}
+
+func (abi ahoCorasickABI) findN(iter uintptr, valueStr string, value cString, n int, matchWholeWords bool) []Match {
+	var resLen C.size_t
+	matchesPtr := C.matches(unsafe.Pointer(iter), unsafe.Pointer(value.ptr), C.size_t(value.length), C.size_t(n), &resLen)
+	defer C.matches_delete(matchesPtr, resLen)
+
+	res := unsafe.Slice((*uintptr)(unsafe.Pointer(matchesPtr)), resLen)
+
+	num := int(resLen) / 3
+	matches := make([]Match, 0, num)
+	for i := 0; i < num; i++ {
+		start := int(res[i*3+1])
+		end := int(res[i*3+2])
+		if matchWholeWords && isNotWholeWord(valueStr, start, end) {
+			continue
+		}
+		var m Match
+		m.pattern = int(res[i*3])
+		m.start = start
+		m.end = end
+		matches = append(matches, m)
+	}
+
+	return matches
 }
 
 type cString struct {

@@ -5,6 +5,7 @@ package aho_corasick
 import (
 	"context"
 	_ "embed"
+	"encoding/binary"
 	"errors"
 	"sync"
 
@@ -35,6 +36,8 @@ type ahoCorasickABI struct {
 	overlapping_iter        api.Function
 	overlapping_iter_next   api.Function
 	overlapping_iter_delete api.Function
+	matches                 api.Function
+	matches_delete          api.Function
 
 	malloc api.Function
 	free   api.Function
@@ -81,6 +84,8 @@ func newABI() *ahoCorasickABI {
 		overlapping_iter:        mod.ExportedFunction("overlapping_iter"),
 		overlapping_iter_next:   mod.ExportedFunction("overlapping_iter_next"),
 		overlapping_iter_delete: mod.ExportedFunction("overlapping_iter_delete"),
+		matches:                 mod.ExportedFunction("matches"),
+		matches_delete:          mod.ExportedFunction("matches_delete"),
 
 		malloc: mod.ExportedFunction("malloc"),
 		free:   mod.ExportedFunction("free"),
@@ -244,6 +249,56 @@ func (abi *ahoCorasickABI) overlappingIterDelete(iter uintptr) {
 	if err := abi.overlapping_iter_delete.CallWithStack(context.Background(), callStack); err != nil {
 		panic(err)
 	}
+}
+
+func (abi *ahoCorasickABI) findN(iter uintptr, valueStr string, value cString, n int, matchWholeWords bool) []Match {
+	lenPtr := abi.memory.allocate(4)
+
+	callStack := abi.callStack
+	callStack[0] = uint64(iter)
+	callStack[1] = uint64(value.ptr)
+	callStack[2] = uint64(value.length)
+	callStack[3] = uint64(n)
+	callStack[4] = uint64(lenPtr)
+	if err := abi.matches.CallWithStack(context.Background(), callStack); err != nil {
+		panic(err)
+	}
+
+	resLen, ok := abi.wasmMemory.ReadUint32Le(uint32(lenPtr))
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	resPtr := callStack[0]
+	defer func() {
+		callStack[0] = uint64(resPtr)
+		callStack[1] = uint64(resLen)
+		if err := abi.matches_delete.CallWithStack(context.Background(), callStack); err != nil {
+			panic(err)
+		}
+	}()
+
+	res, ok := abi.wasmMemory.Read(uint32(resPtr), resLen*4)
+	if !ok {
+		panic(errFailedRead)
+	}
+
+	num := resLen / 3
+	matches := make([]Match, 0, num)
+	for i := 0; i < int(num); i++ {
+		start := int(binary.LittleEndian.Uint32(res[i*12+4:]))
+		end := int(binary.LittleEndian.Uint32(res[i*12+8:]))
+		if matchWholeWords && isNotWholeWord(valueStr, start, end) {
+			continue
+		}
+		var m Match
+		m.pattern = int(binary.LittleEndian.Uint32(res[i*12:]))
+		m.start = start
+		m.end = end
+		matches = append(matches, m)
+	}
+
+	return matches
 }
 
 type sharedMemory struct {

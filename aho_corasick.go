@@ -140,19 +140,18 @@ type Finder interface {
 
 // FindAll returns the matches found in the haystack
 func (ac AhoCorasick) FindAll(haystack string) []Match {
-	iter := ac.Iter(haystack)
-	matches := make([]Match, 0)
+	return ac.FindN(haystack, -1)
+}
 
-	for {
-		next := iter.Next()
-		if next == nil {
-			break
-		}
+// FindN returns the matches found in the haystack, up to n matches.
+func (ac AhoCorasick) FindN(haystack string, n int) []Match {
+	ac.abi.startOperation(4)
+	defer ac.abi.endOperation()
 
-		matches = append(matches, *next)
-	}
+	cs := ac.abi.newOwnedCString(haystack)
+	defer ac.abi.freeOwnedCStringPtr(cs.ptr)
 
-	return matches
+	return ac.abi.findN(ac.ptr, haystack, cs, n, ac.matchOnlyWholeWords)
 }
 
 // Opts defines a set of options applied before the patterns are built
@@ -241,10 +240,7 @@ func (f *findIter) Next() *Match {
 	}
 
 	if f.matchOnlyWholeWords {
-		if result.Start()-1 >= 0 && (unicode.IsLetter(rune(f.haystack[result.Start()-1])) || unicode.IsDigit(rune(f.haystack[result.Start()-1]))) {
-			return f.Next()
-		}
-		if result.end < len(f.haystack) && (unicode.IsLetter(rune(f.haystack[result.end])) || unicode.IsDigit(rune(f.haystack[result.end]))) {
+		if isNotWholeWord(f.haystack, result.Start(), result.End()) {
 			return f.Next()
 		}
 	}
@@ -357,4 +353,15 @@ func (m *Match) End() int {
 // Start gives the index of the first character of this match inside the haystack
 func (m *Match) Start() int {
 	return m.start
+}
+
+func isNotWholeWord(s string, start int, end int) bool {
+	if start-1 >= 0 && (unicode.IsLetter(rune(s[start-1])) || unicode.IsDigit(rune(s[start-1]))) {
+		return true
+	}
+	if end < len(s) && (unicode.IsLetter(rune(s[end])) || unicode.IsDigit(rune(s[end]))) {
+		return true
+	}
+
+	return false
 }
