@@ -26,7 +26,12 @@ import (
 	"unsafe"
 )
 
-type ahoCorasickABI struct{}
+// ahoCorasickABI must not be zero-sized. Build attaches the finalizer that
+// frees the Rust matcher to it, and every zero-size allocation shares one
+// address whose finalizers never run, so each matcher would leak.
+type ahoCorasickABI struct {
+	_ byte
+}
 
 func newABI() *ahoCorasickABI {
 	return &ahoCorasickABI{}
