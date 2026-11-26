@@ -1,9 +1,10 @@
 module github.com/wasilibs/go-aho-corasick
 
-go 1.20
+go 1.26.0
 
 require (
-	github.com/magefile/mage v1.14.0
-	github.com/petar-dambovaliev/aho-corasick v0.0.0-20211021192214-5ab2d9280aa9
-	github.com/tetratelabs/wazero v1.7.2-0.20240506055917-3df6408adf73
+	github.com/petar-dambovaliev/aho-corasick v0.0.0-20250424160509-463d218d4745
+	github.com/tetratelabs/wazero v1.12.0
 )
+
+require golang.org/x/sys v0.47.0 // indirect

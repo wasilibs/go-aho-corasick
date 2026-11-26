@@ -329,7 +329,7 @@ func BenchmarkBurntSushi(b *testing.B) {
 				b.Run(dfaStr, func(b *testing.B) {
 					for _, iterate := range []bool{false, true} {
 						b.Run(fmt.Sprintf("iterate=%v", iterate), func(b *testing.B) {
-							for i := 0; i < b.N; i++ {
+							for range b.N {
 								var cnt int
 								if iterate {
 									iter := ac.Iter(tt.corpus)

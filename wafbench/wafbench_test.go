@@ -124,16 +124,16 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 	defer s.Close()
 
 	b.Run("FTW", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var tests []test.FTWTest
-			err = doublestar.GlobWalk(crs, "tests/regression/tests/**/*.yaml", func(path string, d os.DirEntry) error {
+			err = doublestar.GlobWalk(crs, "tests/regression/tests/**/*.yaml", func(path string, _ os.DirEntry) error {
 				yaml, err := fs.ReadFile(crs, path)
 				if err != nil {
-					return err
+					return fmt.Errorf("wafbench: read file during walk: %w", err)
 				}
 				t, err := test.GetTestFromYaml(yaml)
 				if err != nil {
-					return err
+					return fmt.Errorf("wafbench: parse test during walk: %w", err)
 				}
 				tests = append(tests, t)
 				return nil
@@ -168,10 +168,13 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 	for _, size := range []int{1, 1000, 10000, 100000} {
 		payload := strings.Repeat("a", size)
 		b.Run(fmt.Sprintf("POST/%d", size), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				_, err := http.Post(s.URL+"/anything", "text/plain", strings.NewReader(payload))
+			for b.Loop() {
+				res, err := http.Post(s.URL+"/anything", "text/plain", strings.NewReader(payload))
 				if err != nil {
 					b.Error(err)
+				}
+				if res != nil {
+					res.Body.Close()
 				}
 			}
 		})

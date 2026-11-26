@@ -111,7 +111,11 @@ var errEmptyPaths = errors.New("empty paths")
 
 func loadFromFile(filepath string, paths []string, root fs.FS) ([]byte, error) {
 	if path.IsAbs(filepath) {
-		return fs.ReadFile(root, filepath)
+		content, err := fs.ReadFile(root, filepath)
+		if err != nil {
+			return nil, fmt.Errorf("wafbench: read %s: %w", filepath, err)
+		}
+		return content, nil
 	}
 
 	if len(paths) == 0 {
@@ -133,14 +137,14 @@ func loadFromFile(filepath string, paths []string, root fs.FS) ([]byte, error) {
 			if os.IsNotExist(err) {
 				continue
 			} else {
-				return nil, err
+				return nil, fmt.Errorf("wafbench: read %s: %w", absFilepath, err)
 			}
 		}
 
 		return content, nil
 	}
 
-	return nil, err
+	return nil, fmt.Errorf("wafbench: %s not found in %v: %w", filepath, paths, err)
 }
 
 func init() {

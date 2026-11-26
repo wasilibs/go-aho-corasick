@@ -8,6 +8,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -19,63 +22,74 @@ jobs:
           - tinygo
           - wazero
         os:
-          - macos-13
-          - macos-14
-          - ubuntu-22.04
-          - windows-2022
+          - macos-15
+          - ubuntu-24.04
+          - windows-2025
         exclude:
-          # Might be able to get it to work but currently fails mysteriously.
-          - os: windows-2022
+          # cgo on Windows currently fails mysteriously, same as the other wasilibs repos.
+          - os: windows-2025
             mode: cgo
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "^1.20"
-          cache: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: curioswitch/go-build/.github/actions/setup-go@432d6c326402347b1f6ec5875fbdda8d0cedc54d # v0.10.0
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         if: ${{ matrix.mode == 'cgo' }}
         with:
           toolchain: stable${{ startsWith(matrix.os, 'windows') && '-gnu' || '' }}
-          rustflags: ""
+          build-warnings: warn
+          cache-workspaces: buildtools/aho-corasick
 
       - name: setup aho-corasick for cgo
         if: ${{ matrix.mode == 'cgo' }}
-        run: |
+        # cgo links the shared library. Go 1.27 rejects static archives with LLVM
+        # bitcode in a -L directory, so delete them, including any restored from
+        # the cargo cache.
+        run: |-
           cargo build --release
+          find target -name '*.a' -delete
           ls target/release
         working-directory: buildtools/aho-corasick
 
       - name: add aho-corasick DLL to path
         if: ${{ startsWith(matrix.os, 'windows-') }}
-        run: echo "${GITHUB_WORKSPACE}/buildtools/aho-corasick/target/release" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+        run: echo "$env:GITHUB_WORKSPACE/buildtools/aho-corasick/target/release" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: setup tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        uses: acifani/setup-tinygo@v1
+        uses: acifani/setup-tinygo@f51bf108c9895381060398804ce6cf6f62692106 # v3.0.1
         with:
-          tinygo-version: 0.31.2
+          tinygo-version: 0.44.0
       - name: setup wasmtime for tinygo
         if: ${{ matrix.mode == 'tinygo' }}
-        run: go install github.com/wasilibs/tools/cmd/wasmtime@875fe73f677c58d467ee373a9e00e6cb66b268f3
+        run: go install github.com/wasilibs/tools/cmd/wasmtime@13e21a5960c7f51cd8c92da5cf35774d3207ee38
 
-      - run: go run mage.go check
+      - name: run checks
+        run: go run ./build ${{ startsWith(matrix.os, 'ubuntu-') && 'check' || 'test' }}
         env:
-          WASI_TEST_MODE: ${{ matrix.mode }}
-          LD_LIBRARY_PATH: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' && format('{0}/{1}', github.workspace, '/buildtools/aho-corasick/target/release') || '' }}
+          AHO_CORASICK_TEST_MODE: ${{ matrix.mode }}
+          LD_LIBRARY_PATH: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.mode == 'cgo' && format('{0}/{1}', github.workspace, 'buildtools/aho-corasick/target/release') || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lint is OS-independent, so only run it on Linux like the root module's
+      # check. Running it on Windows also hits a wazero cache rename race.
+      - name: run wafbench checks
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        run: go run ./build lint
+        working-directory: wafbench
 
   # Runs tests using wazero inside a minimal golang docker image. This makes sure the code builds
   # even when there is no C toolchain available. It is possible for code to work fine with CGO_ENABLED=0
   # but not build without a C toolchain available, e.g. if C source files are checked into the repo
   # without a build tag to exclude them from pure-Go builds.
   docker-build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     container:
       image: golang:alpine
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 321; fi
+      - run: if command -v gcc &> /dev/null; then echo "GCC found but not expected"; exit 2; fi
 
-      - run: go run mage.go test
+      - run: go run ./build test-go

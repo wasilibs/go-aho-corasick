@@ -18,7 +18,7 @@ func TestAhoCorasick_ReplaceAllFuncStopN(t *testing.T) {
 		r := NewReplacer(ac)
 		i := -1
 		replaced := r.ReplaceAllFunc(i2.haystack, func(match Match) (string, bool) {
-			i += 1
+			i++
 			return i2.replaceWith[match.pattern], i2.stopAt != i
 		})
 		if replaced != i2.replaced {
@@ -195,7 +195,7 @@ func TestAhoCorasick_Parallel(t *testing.T) {
 	var w sync.WaitGroup
 
 	w.Add(50)
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		go func() {
 			matches := ac.FindAll(t2.haystack)
 			if len(matches) != len(t2.matches) {

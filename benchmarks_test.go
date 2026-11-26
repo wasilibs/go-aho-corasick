@@ -21,7 +21,7 @@ func BenchmarkReplaceAll(b *testing.B) {
 					dfaStr = "dfa"
 				}
 				b.Run(dfaStr, func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
+					for range b.N {
 						_ = ac.ReplaceAll(tt.haystack, tt.replaceWith)
 					}
 				})
@@ -47,7 +47,7 @@ func BenchmarkLeftmostInsensitiveWholeWord(b *testing.B) {
 					dfaStr = "dfa"
 				}
 				b.Run(dfaStr, func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
+					for range b.N {
 						_ = ac.FindAll(tt.haystack)
 					}
 				})

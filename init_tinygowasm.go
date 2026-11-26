@@ -3,6 +3,6 @@
 package aho_corasick
 
 /*
-#cgo LDFLAGS: -Lwasm -laho_corasick
+#cgo LDFLAGS: -Linternal/wasm -laho_corasick
 */
 import "C"

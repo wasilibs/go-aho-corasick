@@ -4,47 +4,47 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '**/*.yaml'
+      - "**/*.md"
+      - "**/*.txt"
+      - "**/*.yaml"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   bench:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "^1.20"
-          cache: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: curioswitch/go-build/.github/actions/setup-go@432d6c326402347b1f6ec5875fbdda8d0cedc54d # v0.10.0
 
-      - uses: actions/cache@v3
+      # Needed for the cgo benchmark mode run by bench-all / wafbench-all.
+      # The action caches the cargo registry and target directory itself.
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          toolchain: stable
+          build-warnings: warn
+          cache-workspaces: buildtools/aho-corasick
 
       - name: setup aho-corasick for cgo
-        run: |
-          rustup toolchain install stable
-          rustup default stable
+        # cgo links the shared library. Go 1.27 rejects static archives with LLVM
+        # bitcode in a -L directory, so delete them, including any restored from
+        # the cargo cache.
+        run: |-
           cargo build --release
+          find target -name '*.a' -delete
         working-directory: buildtools/aho-corasick
 
-      - run: go run mage.go benchall
+      - run: go run ./build bench-all
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/buildtools/aho-corasick/target/release
 
-      - run: go run mage.go wafbenchall
+      - run: go run ./build wafbench-all
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/buildtools/aho-corasick/target/release
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: results
-          path: build/*bench*.txt
+          path: out/*bench*.txt
