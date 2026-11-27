@@ -26,7 +26,14 @@ import (
 	"unsafe"
 )
 
-type ahoCorasickABI struct{}
+// ahoCorasickABI must be at least 16 bytes. Build attaches the finalizer that
+// frees the Rust matcher to it. Every zero-size allocation shares one address
+// whose finalizers never run, and Go packs smaller pointer-free objects into
+// shared 16-byte blocks whose finalizers only run once the whole block is dead.
+// Either way matchers would leak.
+type ahoCorasickABI struct {
+	_ [16]byte
+}
 
 func newABI() *ahoCorasickABI {
 	return &ahoCorasickABI{}
