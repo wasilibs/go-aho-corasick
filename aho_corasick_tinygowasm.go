@@ -22,7 +22,6 @@ void matches_delete(void* matches, size_t num);
 import "C"
 
 import (
-	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -33,7 +32,7 @@ func newABI() *ahoCorasickABI {
 	return &ahoCorasickABI{}
 }
 
-func (abi *ahoCorasickABI) startOperation(memorySize int) {
+func (abi *ahoCorasickABI) startOperation(int) {
 }
 
 func (abi *ahoCorasickABI) endOperation() {
@@ -50,8 +49,6 @@ func (abi *ahoCorasickABI) newMatcher(patterns []string, patternBytes int, ascii
 		lens[i] = uintptr(len(p))
 	}
 
-	patternsSh := (*reflect.SliceHeader)(unsafe.Pointer(&patternsBuf))
-	lensSh := (*reflect.SliceHeader)(unsafe.Pointer(&lens))
 	aci := 0
 	if asciiCaseInsensitive {
 		aci = 1
@@ -61,8 +58,9 @@ func (abi *ahoCorasickABI) newMatcher(patterns []string, patternBytes int, ascii
 	if dfa {
 		d = 1
 	}
-	ptr := C.new_matcher(unsafe.Pointer(patternsSh.Data), unsafe.Pointer(lensSh.Data), C.int(len(patterns)), C.int(aci), C.int(d), C.int(matchKind))
-	runtime.KeepAlive(patterns)
+	ptr := C.new_matcher(unsafe.Pointer(unsafe.SliceData(patternsBuf)), unsafe.Pointer(unsafe.SliceData(lens)), C.int(len(patterns)), C.int(aci), C.int(d), C.int(matchKind))
+	runtime.KeepAlive(patternsBuf)
+	runtime.KeepAlive(lens)
 	return uintptr(ptr)
 }
 
@@ -106,16 +104,16 @@ func (abi *ahoCorasickABI) overlappingIterDelete(iterPtr uintptr) {
 	C.overlapping_iter_delete(unsafe.Pointer(iterPtr))
 }
 
-func (abi ahoCorasickABI) findN(iter uintptr, valueStr string, value cString, n int, matchWholeWords bool) []Match {
+func (abi *ahoCorasickABI) findN(iter uintptr, valueStr string, value cString, n int, matchWholeWords bool) []Match {
 	var resLen C.size_t
 	matchesPtr := C.matches(unsafe.Pointer(iter), unsafe.Pointer(value.ptr), C.size_t(value.length), C.size_t(n), &resLen)
 	defer C.matches_delete(matchesPtr, resLen)
 
-	res := unsafe.Slice((*uintptr)(unsafe.Pointer(matchesPtr)), resLen)
+	res := unsafe.Slice((*uintptr)(matchesPtr), resLen)
 
 	num := int(resLen) / 3
 	matches := make([]Match, 0, num)
-	for i := 0; i < num; i++ {
+	for i := range num {
 		start := int(res[i*3+1])
 		end := int(res[i*3+2])
 		if matchWholeWords && isNotWholeWord(valueStr, start, end) {
@@ -137,10 +135,9 @@ type cString struct {
 }
 
 func (abi *ahoCorasickABI) newCString(s string) cString {
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	return cString{
-		ptr:    sh.Data,
-		length: int(sh.Len),
+		ptr:    uintptr(unsafe.Pointer(unsafe.StringData(s))),
+		length: len(s),
 	}
 }
 
@@ -148,5 +145,5 @@ func (abi *ahoCorasickABI) newOwnedCString(s string) cString {
 	return abi.newCString(s)
 }
 
-func (abi *ahoCorasickABI) freeOwnedCStringPtr(ptr uintptr) {
+func (abi *ahoCorasickABI) freeOwnedCStringPtr(uintptr) {
 }

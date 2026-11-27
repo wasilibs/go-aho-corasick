@@ -1,34 +1,35 @@
 # go-aho-corasick
 
-go-aho-corasick is a library for aho-corasick which wraps the Rust [BurntSushi/aho-corasick][2] library.
-It provides the same API as [petar-dambovaliev/aho-corasick][1] and is a drop-in replacement with full
-API and behavior compatibility. By default, aho-corasick is packaged as a WebAssembly module and accessed
-with the pure Go runtime,  [wazero][3]. This means that it is compatible with any Go application, regardless
-of availability of cgo.
+go-aho-corasick is a library for aho-corasick which wraps the Rust [BurntSushi/aho-corasick][2]
+library. It provides the same API as [petar-dambovaliev/aho-corasick][1] and is a drop-in
+replacement with full API and behavior compatibility. By default, aho-corasick is packaged as a
+WebAssembly module and accessed with the pure Go runtime, [wazero][3]. This means that it is
+compatible with any Go application, regardless of availability of cgo.
 
-For TinyGo applications being built for WASM, this library will perform significantly better. For Go applications,
-the performance difference varies by case. [petar-dambovaliev/aho-corasick][1] performs quite well, but this
-library seems to perform better with 4+ patterns, and larger ones. The API is a drop-in replacement, so it
-is best to try it and benchmark to see the effect. Notably, for unknown input where a decision on using DFA or
-not cannot be made beforehand, the automatic detection in this library will often perform much better.
+For TinyGo applications being built for WASM, this library will perform significantly better. For
+Go applications, the performance difference varies by case. [petar-dambovaliev/aho-corasick][1]
+performs quite well, but this library seems to perform better with 4+ patterns, and larger ones.
+The API is a drop-in replacement, so it is best to try it and benchmark to see the effect. Notably,
+for unknown input where a decision on using DFA or not cannot be made beforehand, the automatic
+detection in this library will often perform much better.
 
 ## Behavior differences
 
-This library will automatically pick an implementations among NFA, contiguous NFA, and DFA unless the `DFA` flag
-is explicitly passed when constructing. This generally results in better performance than always using one or the
-other.
+This library will automatically pick an implementations among NFA, contiguous NFA, and DFA unless
+the `DFA` flag is explicitly passed when constructing. This generally results in better performance
+than always using one or the other.
 
 ## Usage
 
-go-aho-corasick is a standard Go library package and can be added to a go.mod file. It will work fine in
-Go or TinyGo projects.
+go-aho-corasick is a standard Go library package and can be added to a go.mod file. It will work
+fine in Go or TinyGo projects.
 
-```
+```text
 go get github.com/wasilibs/go-aho-corasick
 ```
 
-Because the library is a drop-in replacement for [petar-dambovaliev/aho-corasick][1], an import rewrite can
-make migrating code to use it simple.
+Because the library is a drop-in replacement for [petar-dambovaliev/aho-corasick][1], an import
+rewrite can make migrating code to use it simple.
 
 ```go
 import "github.com/peter-dambovaliev/aho-corasick"
@@ -59,7 +60,7 @@ should still be somewhat, though not precisely, informative.
 Microbenchmarks are the same as included in the reference Rust and Go libraries. Full results can be
 viewed in the workflow, a sample of results for one run looks like this
 
-```
+```text
 BurntSushi/random/onebyte/match/default-2                           51.3µs ± 3%     147.5µs ± 0%          74.7µs ± 1%
 BurntSushi/random/onebyte/match/dfa-2                               64.4µs ± 0%     148.8µs ± 0%          76.9µs ± 4%
 BurntSushi/random/onebyte/nomatch/default-2                         5.67µs ± 2%      7.33µs ±12%          1.33µs ±19%
@@ -112,11 +113,12 @@ BurntSushi/sherlock/5000words/default-2                             21.6ms ± 0%
 BurntSushi/sherlock/5000words/dfa-2                                 4.35ms ± 0%      4.93ms ± 0%          2.65ms ± 0%
 ```
 
-Random gives us a look at various different patterns against a random corpus. We see that the four-byte case, with
-four patterns, seems to be a threshold where this library performs better with auto-detection of the matcher.
+Random gives us a look at various different patterns against a random corpus. We see that the
+four-byte case, with four patterns, seems to be a threshold where this library performs better with
+auto-detection of the matcher.
 
-Sherlock is a more real-world example, with the literary text for Sherlock Holmes. We again see that cases with
-4+ patterns seem to perform significantly better.
+Sherlock is a more real-world example, with the literary text for Sherlock Holmes. We again see
+that cases with 4+ patterns seem to perform significantly better.
 
 ### wafbench
 
@@ -125,7 +127,7 @@ wafbench tests the performance of replacing the pm operator of the OWASP [CoreRu
 test, though the bulk of processing is in regex, not pm. The pm matchers themselves have a large
 number of patterns and are considered complex.
 
-```
+```text
 WAF/FTW-2                         28.2s ± 0%          28.3s ± 0%              28.3s ± 0%
 WAF/POST/1-2                     3.08ms ± 2%         3.09ms ± 2%             3.10ms ± 2%
 WAF/POST/1000-2                  20.0ms ± 1%         19.9ms ± 1%             20.2ms ± 1%
